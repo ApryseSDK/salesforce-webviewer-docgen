@@ -15,8 +15,8 @@ cd salesforce-webviewer-docgen
 * [VS Code Authentication steps](https://salesforcediaries.com/2019/03/15/salesforce-cli-and-visual-studio-code-command-palette/)
 
 3. Deploy to your Org
-* [Non-tracking org (Sandbox, Production, Dev Org etc)](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_source.htm)
-* [Tracking org (Scratch Org)](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_source.htm)
+* [Non-tracking org (Sandbox, Production, Dev Org etc) - `force:source:deploy`](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_source.htm)
+* [Tracking org (Scratch Org) - `force:source:push`](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_source.htm)
 * VS Code: right click on your `force-app/main/default` folder and select `SFDX: Deploy Source to Org`
 
 4. Once deployed, navigate to any Lightning Page (for example your Home page) in your org. Select the setup gear wheel, and click on `Edit Page`.
