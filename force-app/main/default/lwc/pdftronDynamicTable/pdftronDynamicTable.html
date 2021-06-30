@@ -1,0 +1,32 @@
+<template>
+    <lightning-card class="slds-card_boundary" icon-name="custom:custom13">
+        <h1 slot="title">{title}</h1>
+        <lightning-button slot="actions" variant="brand-outline" label="Add Row" onclick={addRow}></lightning-button>
+        <div class="slds-card__body slds-card__body_inner">
+            <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-var-m-bottom_large"> 
+                <thead>
+                    <tr class="slds-text-title_caps">
+                        <template for:each={columns} for:item="column">
+                            <th key={column.apiName}><div class="slds-truncate">{column.label}</div></th>
+                        </template>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={rows} for:item="row" for:index="index">
+                        <tr class="inputRows" key={row.uuid}>
+                            <template for:each={columns} for:item="column">
+                                <td key={column.apiName}>
+                                  <c-pdftron-input-pick-list-cell class="fields" field-type={column.fieldType} record={row} field={column.apiName} object-name={column.objectName}></c-pdftron-input-pick-list-cell>
+                                  <c-pdftron-input-table-cell class="fields" field-type={column.fieldType} record={row} field={column.apiName} ></c-pdftron-input-table-cell> 
+                                </td>
+                            </template>
+                            <td>
+                                <lightning-button-icon icon-name="utility:delete" value={index} variant="bare" onclick={removeRow}></lightning-button-icon>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </lightning-card>
+  </template>

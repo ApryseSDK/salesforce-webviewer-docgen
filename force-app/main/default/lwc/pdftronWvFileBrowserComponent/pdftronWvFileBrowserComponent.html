@@ -1,0 +1,39 @@
+<template>
+  <lightning-card title="File Explorer" icon-name="standard:folder">
+    <div>
+      <template if:true={isLoading}>
+        <div class="spinnerContainer">
+          <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+        </div>
+      </template>
+    </div>
+    <div class="slds-p-around_small">
+      <!-- allow-multiple-sections-open -->
+      <lightning-accordion active-section-name="Search">
+        <template if:false={hideSearch}>
+          <lightning-accordion-section name="Search" label="Search">
+            <c-lookup onsearch={handleSearch} onselectionchange={handleSingleSelectionChange}
+              placeholder="Search Your Files By Name">
+            </c-lookup>
+          </lightning-accordion-section>
+        </template>
+        <template if:false={hideUpload}>
+          <lightning-accordion-section name="Upload" label="Upload Files">
+            <lightning-file-upload class="slds-align_absolute-center slds-p-around_small" label="Upload Files"
+              name="fileUploader" accept={acceptedFormats} record-id={myRecordId}
+              onuploadfinished={handleUploadFinished} multiple>
+            </lightning-file-upload>
+          </lightning-accordion-section>
+        </template>
+        <template if:false={hideLibrary}>
+          <lightning-accordion-section name="File Library" label="File Library">
+            <c-pdftron-file-data-table></c-pdftron-file-data-table>
+          </lightning-accordion-section>
+        </template>
+        <lightning-accordion-section name="Document Generation" label="Document Generation">
+          <c-pdftron-document-generator></c-pdftron-document-generator>
+        </lightning-accordion-section>
+      </lightning-accordion>
+    </div>
+  </lightning-card>
+</template>

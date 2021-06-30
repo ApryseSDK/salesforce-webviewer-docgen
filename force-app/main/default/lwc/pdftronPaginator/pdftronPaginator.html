@@ -1,0 +1,20 @@
+<template>
+    <lightning-layout>
+        <div class="slds-align_absolute-center">
+            <lightning-layout-item class="slds-p-around_x-small">
+                <lightning-button label="Previous" icon-name="utility:chevronleft" onclick={previousHandler}>
+                </lightning-button>
+            </lightning-layout-item>
+            <lightning-layout-item class="slds-p-around_x-small">
+                <lightning-button label="Open File(s)" icon-name="utility:open_folder" icon-position="left"
+                    onclick={fileHandler} variant="brand">
+                </lightning-button>
+            </lightning-layout-item>
+            <lightning-layout-item class="slds-p-around_x-small">
+                <lightning-button label="Next" icon-name="utility:chevronright" icon-position="right"
+                    onclick={nextHandler}>
+                </lightning-button>
+            </lightning-layout-item>
+        </div>
+    </lightning-layout>
+</template>

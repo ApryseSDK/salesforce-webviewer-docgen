@@ -1,0 +1,31 @@
+<template>
+        <div class="slds-card__body slds-card__body_inner">
+            <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-var-m-bottom_large"> 
+                <thead>
+                    <tr class="slds-text-title_caps">
+                        <template for:each={columns} for:item="column">
+                            <th key={column.apiName}><div class="slds-truncate">{column.label}</div></th>
+                        </template>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={rows} for:item="row" for:index="index">
+                        <tr class="inputRows" key={row.templateKey}>
+                            <td>
+                                <lightning-input class="slds-p-around_xx-small" variant="label-hidden" type="text" value={row.templateKey} disabled></lightning-input>
+                            </td>
+                            <td>
+                                <lightning-input class="slds-p-around_xx-small values" variant="label-hidden" type="text" placeholder={row.placeholder} data-key={row.templateKey} onchange={handleChange}></lightning-input>
+                            </td>
+                            <template for:each={columns} for:item="column">
+                                <td key={column.apiName}></td>
+                            </template>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+            <div class="slds-align_absolute-center">
+                <lightning-button variant="brand" label="Fill Template" onclick={handleFill}></lightning-button>
+            </div>
+        </div>
+  </template>

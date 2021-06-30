@@ -1,0 +1,19 @@
+<template>
+    <div>
+      </div>
+    <div class="slds-m-around_medium">
+        <p class="slds-align_absolute-center">
+            <strong>{page}/{totalPage}</strong>
+        </p>
+    </div>
+    <div class="slds-m-around_medium">
+        <div style="height: 180px;">
+            <lightning-datatable key-field="id" data={data} columns={columns}>
+            </lightning-datatable>
+        </div>
+    </div>
+    <div>
+        <c-pdftron-paginator onprevious={previousHandler} onfile={fileHandler} onnext={nextHandler}>
+        </c-pdftron-paginator>
+    </div>
+</template>

@@ -1,0 +1,11 @@
+<template>
+    <template if:true={isPickList}>
+        <lightning-combobox
+                name="progress"
+                variant="label-hidden"
+                value={value}
+                placeholder="Select Values"
+                options={options}
+                onchange={handleChange} ></lightning-combobox>
+    </template>
+</template>
