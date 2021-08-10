@@ -30,7 +30,7 @@ export default class PdftronWvInstance extends LightningElement {
   context = createMessageContext();
 
   source = 'My file';
-  fullAPI = true;
+  fullAPI = false;
   enableRedaction = true;
   @api recordId;
 

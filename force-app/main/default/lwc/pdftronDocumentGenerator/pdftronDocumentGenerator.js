@@ -5,7 +5,7 @@ import { fireEvent, registerListener, unregisterAllListeners } from 'c/pubsub';
 
 export default class PdftronDocumentGenerator extends LightningElement {
     columns;
-    showTable = false;
+    @track showTable = false;
     @track value;
     @track rows = [];
     @track values = [];
@@ -23,9 +23,6 @@ export default class PdftronDocumentGenerator extends LightningElement {
     }
 
     renderedCallback() {
-        if(this.rows.length > 0) {
-            this.showTable = true;
-        }
     }
 
     disconnectedCallback() {
@@ -40,6 +37,12 @@ export default class PdftronDocumentGenerator extends LightningElement {
     }
 
     handleOptions(keys) {
+        if(!keys) {
+            this.showTable = false;
+            return;
+        }
+        this.rows = [];
+        this.showTable = true;
         for(const i in keys) {
             this.rows = [...this.rows, {uuid: this.createUUID(), templateKey: keys[i], placeholder: `Replace {{${keys[i]}}}`}]
         }

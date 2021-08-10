@@ -1,5 +1,6 @@
 <template>
         <div class="slds-card__body slds-card__body_inner">
+            <template if:true={showTable}>
             <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-var-m-bottom_large"> 
                 <thead>
                     <tr class="slds-text-title_caps">
@@ -27,5 +28,9 @@
             <div class="slds-align_absolute-center">
                 <lightning-button variant="brand" label="Fill Template" onclick={handleFill}></lightning-button>
             </div>
+        </template>
+        <template if:false={showTable}>
+            <p class="slds-align_absolute-center">Open a .docx file in WebViewer with template tags to fill a template.</p>
+        </template>
         </div>
   </template>
