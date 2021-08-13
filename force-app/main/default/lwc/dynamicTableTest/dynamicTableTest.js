@@ -1,5 +1,4 @@
 import { LightningElement, track,api } from 'lwc';
-import createAccounts from '@salesforce/apex/PDFTron_ContentVersionController.createAccounts';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 const columns=[
