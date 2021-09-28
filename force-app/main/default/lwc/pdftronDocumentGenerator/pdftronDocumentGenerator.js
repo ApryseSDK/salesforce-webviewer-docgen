@@ -40,6 +40,7 @@ export default class PdftronDocumentGenerator extends LightningElement {
     }
 
     handleOptions(keys) {
+        this.rows = []
         for(const i in keys) {
             this.rows = [...this.rows, {uuid: this.createUUID(), templateKey: keys[i], placeholder: `Replace {{${keys[i]}}}`}]
         }

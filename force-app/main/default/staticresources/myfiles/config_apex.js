@@ -32,6 +32,8 @@ window.CoreControls.setCustomFontURL('https://pdftron.s3.amazonaws.com/custom/ID
 async function fillDocument(event) {
   const autofillMap = event.data.mapping;
 
+  console.log('autofillMap', autofillMap);
+
   //{"image_url":"/resource/pdftron_logo", "width":64, "height":64}
 
   for (const entry in autofillMap) {
@@ -101,6 +103,7 @@ window.addEventListener('viewerLoaded', async function () {
 
   window.addEventListener('documentLoaded', async () => {
     const { documentViewer } = instance.Core;
+    console.log('document loaded!');
 
     await documentViewer.getDocument().documentCompletePromise();
     documentViewer.updateView();

@@ -41,6 +41,7 @@ export default class PdftronWvInstance extends LightningElement {
     //'/sfc/servlet.shepherd/version/download/0694x000000pEGyAAM'
     ///servlet/servlet.FileDownload?file=documentId0694x000000pEGyAAM
     this.handleSubscribe();
+    registerListener('handleLink', this.handleLink, this);
     registerListener('blobSelected', this.handleBlobSelected, this);
     registerListener('fileIdsSelected', this.handleFileIdsSelected, this);
     registerListener('search', this.search, this);
@@ -55,6 +56,11 @@ export default class PdftronWvInstance extends LightningElement {
     unregisterAllListeners(this);
     window.removeEventListener('message', this.handleReceiveMessage, true);
     this.handleUnsubscribe();
+  }
+
+  handleLink(event) {
+    let url = event.data.payload;
+    this.iframeWindow.postMessage({ type: 'LOAD_URL', url }, '*');
   }
 
   handleSubscribe() {
@@ -74,6 +80,7 @@ export default class PdftronWvInstance extends LightningElement {
   }
   
   handleTemplateMapping(mapping) {
+    console.log('mapping in instance: ', mapping);
     this.iframeWindow.postMessage({ type: 'FILL_TEMPLATE', mapping }, '*');
   }
 
@@ -141,9 +148,6 @@ export default class PdftronWvInstance extends LightningElement {
   }
 
   handleBlobSelected(record) {
-    console.log("handleBlob", record);
-    //record = JSON.parse(record);
-
     let blobby = new Blob([_base64ToArrayBuffer(record.body)], {
       type: mimeTypes[record.FileExtension]
     });

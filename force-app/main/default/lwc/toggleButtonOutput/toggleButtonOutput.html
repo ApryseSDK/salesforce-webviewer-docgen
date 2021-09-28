@@ -1,0 +1,13 @@
+<template>
+    <!--Custom component which will be rendered as each cell in custom column in datatable-->
+    <lightning-input 
+        type="toggle" 
+        label="Basic option"
+        variant="label-hidden" 
+        message-toggle-active="Selected"
+        message-toggle-inactive={getInactiveMsg}
+        checked={checked}
+        disabled={buttonDisabled}
+        onchange={handleToggle}>
+    </lightning-input>
+</template>
