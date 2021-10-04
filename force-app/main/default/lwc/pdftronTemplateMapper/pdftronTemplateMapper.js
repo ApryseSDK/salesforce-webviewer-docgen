@@ -3,13 +3,21 @@ import { CurrentPageReference } from 'lightning/navigation'
 import getSObjects from '@salesforce/apex/PDFTron_ContentVersionController.getSObjects'
 import getObjectFields from '@salesforce/apex/PDFTron_ContentVersionController.getObjectFields'
 import queryValuesFromRecord from '@salesforce/apex/PDFTron_ContentVersionController.queryValuesFromRecord'
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import searchSOSL from '@salesforce/apex/PDFTron_ContentVersionController.searchSOSL'
+import { ShowToastEvent } from 'lightning/platformShowToastEvent'
 import { fireEvent, registerListener, unregisterAllListeners } from 'c/pubsub'
 
 export default class PdftronTemplateMapper extends LightningElement {
   columns
-  showTable = false
+  errors = []
   isLoading = false
+  mapping = {}
+  apiNameToTemplateKeyMap = {}
+
+  @api doctemplate
+
+  @track showTable = false
+  @track recordSearched
   @track recordId
   @track value
   @track rows = []
@@ -17,7 +25,6 @@ export default class PdftronTemplateMapper extends LightningElement {
   @track sObjects = []
   @track selectedObject = ''
   @track sObjectFields = []
-  mapping = {}
 
   @wire(CurrentPageReference)
   pageRef
@@ -43,18 +50,19 @@ export default class PdftronTemplateMapper extends LightningElement {
 
   connectedCallback () {
     registerListener('doc_gen_options', this.handleOptions, this)
+    registerListener('closeDocument', this.closeDocument, this);
     this.columns = [
       {
         label: 'Template Key',
         apiName: 'templateKey',
         fieldType: 'text',
-        objectName: 'Account'
+        objectName: 'sObject'
       },
       {
-        label: 'Value',
+        label: 'Field API Name',
         apiName: 'Value',
         fieldType: 'text',
-        objectName: 'Account'
+        objectName: 'sObject'
       }
     ]
   }
@@ -79,6 +87,32 @@ export default class PdftronTemplateMapper extends LightningElement {
     })
   }
 
+  closeDocument() {
+    this.showTable = false
+  }
+
+  handleSearch (event) {
+    const lookupElement = event.target
+    searchSOSL(event.detail)
+      .then(results => {
+        console.log('searchResults', results)
+        lookupElement.setSearchResults(results)
+      })
+      .catch(error => {
+        // TODO: handle error
+        this.error = error
+        console.error(error)
+        let def_message =
+          'We have encountered an error while searching your file. '
+
+        this.showNotification(
+          'Error',
+          def_message + error.body.message,
+          'error'
+        )
+      })
+  }
+
   handleSObjectChange (event) {
     this.selectedObject = event.detail.value
     console.log('this.selectedObject', this.selectedObject)
@@ -100,20 +134,30 @@ export default class PdftronTemplateMapper extends LightningElement {
       })
   }
 
-  handleSaveTemplate() {
+  handleSaveTemplate () {
+    let templateData = {}
 
+    templateData['sobject'] = this.selectedObject
+    templateData['mapping'] = this.apiNameToTemplateKeyMap
+    templateData['templateName'] = this.doctemplate.title
+    templateData['templateId'] = this.doctemplate.id
+
+    fireEvent(this.pageRef, 'handleModal', templateData);
   }
 
   handleFill () {
     this.isLoading = true
+    //this.validateFields()
+
+    this.mapping = {}
+    this.apiNameToTemplateKeyMap = {}
     const selectedFields = this.template.querySelectorAll('.dropdownfields') //get all dropdown selections
     let comboboxfields = [] //list of fields to query from apex
-    let apiNameToTemplateKeyMap = {} //maps salesforce object field api names to documents' template keys
 
     //fill above from user input to dropdowns
     selectedFields.forEach(field => {
       comboboxfields.push(field.value)
-      apiNameToTemplateKeyMap[field.value] = field.dataset.templatekey
+      this.apiNameToTemplateKeyMap[field.value] = field.dataset.templatekey
     })
 
     //send list of fields to Apex and query via dynamic SOQL
@@ -129,8 +173,8 @@ export default class PdftronTemplateMapper extends LightningElement {
         var newHashmap = {}
         Object.keys(data[0]).forEach(key => {
           var value = data[0][key]
-          key = apiNameToTemplateKeyMap[key]
-            ? apiNameToTemplateKeyMap[key]
+          key = this.apiNameToTemplateKeyMap[key]
+            ? this.apiNameToTemplateKeyMap[key]
             : key
           newHashmap[key] = value
         })
@@ -142,12 +186,69 @@ export default class PdftronTemplateMapper extends LightningElement {
       .catch(error => {
         this.isLoading = false
 
-        this.showNotification('Error', 'There was an error when trying to preview your template: \n' + error, 'error')
+        this.showNotification(
+          'Error',
+          'There was an error when trying to preview your template: \n' +
+            error.body.message,
+          'error'
+        )
         console.error(error)
       })
+  }
 
+  validateFields () {
+    //turn off spinner
+    this.isLoading === true ? this.isLoading = false : ''
+    //validate lightning-input
+    this.template.querySelectorAll('lightning-input, lightning-combobox, c-lookup').forEach(element => {
+      element.reportValidity()
+    })
+  }
 
+  handleSingleSelectionChange (event) {
+    if (event.detail.length < 1) {
+      this.recordSearched = false
+      this.recordId = ''
+      this.selectedObject = ''
+      return
+    }
 
+    const selection = this.template.querySelector('c-lookup').getSelection()
+
+    this.recordSearched = true
+
+    this.recordId = selection[0].id
+    this.selectedObject = selection[0].sObjectType
+
+    getObjectFields({ objectName: this.selectedObject })
+      .then(data => {
+        this.sObjectFields = []
+        data.forEach(field => {
+          let option = {
+            label: field,
+            value: field
+          }
+          this.sObjectFields = [...this.sObjectFields, option]
+        })
+      })
+      .catch(error => {
+        console.error(error)
+      })
+  }
+
+  checkForErrors () {
+    this.errors = []
+    const selection = this.template.querySelector('c-lookup').getSelection()
+    // Custom validation rule
+    if (this.isMultiEntry && selection.length > this.maxSelectionSize) {
+      this.errors.push({
+        message: `You may only select up to ${this.maxSelectionSize} items.`
+      })
+    }
+    // Enforcing required field
+    if (selection.length === 0) {
+      this.errors.push({ message: 'Please make a selection.' })
+    }
   }
 
   handleRecordId (event) {
@@ -166,6 +267,7 @@ export default class PdftronTemplateMapper extends LightningElement {
         }
       ]
     }
+    this.showTable = true
   }
 
   handleChange (event) {

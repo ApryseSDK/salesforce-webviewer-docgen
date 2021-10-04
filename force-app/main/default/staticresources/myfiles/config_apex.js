@@ -35,9 +35,10 @@ async function fillDocument(event) {
   console.log('autofillMap', autofillMap);
 
   //{"image_url":"/resource/pdftron_logo", "width":64, "height":64}
-
+/*
   for (const entry in autofillMap) {
     console.log("autofillMap[entry]", autofillMap[entry]);
+    
     if (autofillMap[entry].includes('image_url')) {
       const parentUrl = window.location.origin;
       alert(parentUrl)
@@ -52,7 +53,7 @@ async function fillDocument(event) {
         autofillMap[entry] = json['image_url'];
       }
     }
-  }
+  }*/
 
   await documentViewer.getDocument().applyTemplateValues(autofillMap);
 
@@ -104,6 +105,8 @@ window.addEventListener('viewerLoaded', async function () {
   window.addEventListener('documentLoaded', async () => {
     const { documentViewer } = instance.Core;
     console.log('document loaded!');
+
+    instance.UI.setLayoutMode(instance.UI.LayoutMode.FacingContinuous)
 
     await documentViewer.getDocument().documentCompletePromise();
     documentViewer.updateView();

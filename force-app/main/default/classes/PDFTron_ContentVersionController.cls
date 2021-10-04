@@ -76,6 +76,30 @@ public with sharing class PDFTron_ContentVersionController {
         }
     }
 
+    @AuraEnabled
+    public static String createCMTRecord(String jsonString){
+        try {
+            Map<String, Object> parsedData = (Map<String, Object>)JSON.deserializeUntyped(jsonString);
+            system.debug('##mappy: ' + parsedData);
+            Map<String, Object> cmt_map = new Map<String, Object>();
+            cmt_map.put('Mapping__c', String.valueOf(parsedData.get('mapping')));
+            cmt_map.put('sObject__c', parsedData.get('sObjectName'));
+            cmt_map.put('Template_Name__c', parsedData.get('templateName'));
+            cmt_map.put('Template_Id__c', parsedData.get('templateId'));
+
+            String cmtName = String.valueOf(parsedData.get('cmtName'));
+
+            String recordName = 'PDFTron_Template_Mapping.' + cmtName;
+
+            system.debug('### rec name: '+recordName);
+
+            PDFTron_CMT_Helper.createUpdateMetadata(recordName, recordName, cmt_map);
+            return 'Done!';
+        } catch(Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
     @AuraEnabled(Cacheable=true)
     public static List<LookupSearchResult> searchSOSL(String searchTerm, List<String> selectedIds) {
         // Prepare query paramters
@@ -120,15 +144,15 @@ public with sharing class PDFTron_ContentVersionController {
 
         // Extract Opportunities & convert them into LookupSearchResult
         String contactIcon = 'standard:contact';
-        Contact[] contacts = (List<Contact>) searchResults[1];
+        Contact[] contacts = (List<Contact>) searchResults[2];
         for (Contact con : contacts) {
             results.add(
                 new LookupSearchResult(
                     con.Id,
                     'Contact',
                     contactIcon,
-                    con.Name,
-                    'Contact • ' + con.FirstName + ' ' + con.LastName
+                    con.FirstName + ' ' + con.LastName,
+                    'Contact'
                 )
             );
         }

@@ -30,12 +30,16 @@
             <c-pdftron-file-data-table></c-pdftron-file-data-table>
           </lightning-accordion-section>
         </template>
-        <lightning-accordion-section name="Document Generation" label="Document Generation">
-          <c-pdftron-document-generator></c-pdftron-document-generator>
-        </lightning-accordion-section>
-        <lightning-accordion-section name="Template Mapping" label="Template Mapping">
-          <c-pdftron-template-mapper></c-pdftron-template-mapper>
-        </lightning-accordion-section>
+        <template if:false={hideDocGen}>
+          <lightning-accordion-section name="Document Generation" label="Document Generation">
+            <c-pdftron-document-generator></c-pdftron-document-generator>
+          </lightning-accordion-section>
+        </template>
+        <template if:false={hideTempGen}>
+          <lightning-accordion-section name="Template Mapping" label="Template Mapping">
+            <c-pdftron-template-mapper doctemplate={documentTemplate}></c-pdftron-template-mapper>
+          </lightning-accordion-section>
+        </template>
       </lightning-accordion>
     </div>
   </lightning-card>

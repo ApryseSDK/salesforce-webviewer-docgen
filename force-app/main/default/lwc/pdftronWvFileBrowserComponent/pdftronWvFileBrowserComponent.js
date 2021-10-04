@@ -17,9 +17,13 @@ export default class PdftronWvFileBrowserComponent extends NavigationMixin(Light
   @api hideSearch = false;
   @api hideUpload = false;
   @api hideLibrary = false;
+  @api hideDocGen = false;
+  @api hideTempGen = false;
   @api tabName;
   @api label;
   @api myRecordId;
+
+  @track documentTemplate
   @track searchTerm = '';
   @track contentVersions;
   @track selectedRows;
@@ -100,16 +104,23 @@ export default class PdftronWvFileBrowserComponent extends NavigationMixin(Light
       });
   }
 
+  handleClose () {
+    fireEvent(this.pageRef, 'closeDocument', '*')
+  }
+
   handleSingleSelectionChange(event) {
-    console.log(event.detail[0]);
     this.checkForErrors();
 
     if (event.detail.length < 1) {
+      this.handleClose()
       return;
     }
 
+    const selection = this.template.querySelector('c-lookup').getSelection()
 
     this.isLoading = true;
+    this.documentTemplate = selection[0]
+
 
     getFileDataFromId({ Id: event.detail[0] })
       .then(result => {
