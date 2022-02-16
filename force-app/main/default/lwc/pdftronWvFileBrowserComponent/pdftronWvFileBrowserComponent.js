@@ -19,6 +19,7 @@ export default class PdftronWvFileBrowserComponent extends NavigationMixin(Light
   @api hideLibrary = false;
   @api hideDocGen = false;
   @api hideTempGen = false;
+  @api hideBulkTempGen = false;
   @api tabName;
   @api label;
   @api myRecordId;

@@ -14,6 +14,7 @@
       <property name="hideLibrary" type="Boolean" label="Hide File Library?" default="true" description="Check this box to hide the file library section of the component." />
       <property name="hideDocGen" type="Boolean" label="Hide Document Generator?" default="true" description="Check this box to hide the document generation section of the component." />
       <property name="hideTempGen" type="Boolean" label="Hide Template Mapper?" default="true" description="Check this box to hide the template mapping section of the component." />
+      <property name="hideBulkTempGen" type="Boolean" label="Hide Bulk Template Mapper?" default="true" description="Check this box to hide the bulk template mapping section of the component." />
     </targetConfig>
   </targetConfigs>
 </LightningComponentBundle>

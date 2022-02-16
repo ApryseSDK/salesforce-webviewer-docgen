@@ -1,3 +1,23 @@
 <template>
+    <!-- .docx files only -->
+    <c-lookup 
+        label="Select Template"
+        onsearch={handleSearch} 
+        onselectionchange={handleSingleSelectionChange}
+        placeholder="Search Your Records By Name">
+    </c-lookup>
+
+    <!-- custommetadeta template search -->
+    <c-lookup 
+        label="Select Mapping"
+        onsearch={handleMetaSearch} 
+        onselectionchange={handleSingleSelectionChange}
+        placeholder="Search Your Templates By Name">
+    </c-lookup>
+
+    <lightning-button label="Preview" onclick={handleFill}></lightning-button>
+    <lightning-button class="slds-var-p-left_xx-small" variant="brand" label="Save as Template"
+        onclick={handleSaveTemplate}></lightning-button>
     
+    <div>Something: {customMetaData}</div>
 </template>

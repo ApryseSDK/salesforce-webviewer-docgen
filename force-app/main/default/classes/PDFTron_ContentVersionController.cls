@@ -187,6 +187,29 @@ public with sharing class PDFTron_ContentVersionController {
         return results;
     }
 
+    @AuraEnabled(Cacheable=true)
+    public static List<LookupSearchResult> searchMetaData(String searchTerm, List<String> selectedIds) {
+        searchTerm = '%' + searchTerm + '%'; 
+
+        // Prepare results
+        List<LookupSearchResult> results = new List<LookupSearchResult>();
+        
+        for (PDFTron_Template_Mapping__mdt cv : [
+            SELECT id, sObject__c, Mapping__c, Template_Id__c, Template_Name__c
+            FROM PDFTron_Template_Mapping__mdt
+            WHERE Template_Name__c LIKE :searchTerm
+        ]) {
+            System.debug(cv);
+            if(checkFileExtension(cv.Template_Id__c)) {
+                String subtitle = 'hello';
+                results.add(new LookupSearchResult(cv.Template_Id__c, 'PDFTron_Template_Mapping__mdt', getFileLogo('gform'), cv.Template_Name__c, subtitle));
+            }
+        }
+       
+        //results.sort();
+        return results;
+    }
+
     //get single file from Id
     @AuraEnabled(Cacheable=true) 
     public static ContentVersionWrapper getFileDataFromId(String Id) {
