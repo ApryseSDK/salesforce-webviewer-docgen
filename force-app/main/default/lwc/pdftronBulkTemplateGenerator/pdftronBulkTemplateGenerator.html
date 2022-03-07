@@ -8,12 +8,13 @@
         placeholder="Search Your Templates By Name">
     </c-lookup>
 
-    <div>
-        <c-lookup class="lookupRecord" onsearch={handleSearch} onselectionchange={handleSingleSelectionChange} label="Search Standard Object Records"
-            placeholder="Search Records By Name"></c-lookup>
-    </div>
+    <!-- <lightning-combobox name="sObject" label="Object" value={selectedObject} placeholder="Select from all objects"
+                options={sObjects} onchange={handleSObjectChange} disabled={recordSearched} required></lightning-combobox> -->
 
-    <lightning-button label="Preview" onclick={handleFill}></lightning-button>
+    <lightning-textarea label="SOQL Query" onchange={handleSOQLQuery} value={soqlText}></lightning-textarea> 
+    <lightning-button onclick={handleClick} label="Query"></lightning-button>
+    <lightning-datatable if:true={showTable} key-field="Id" columns={columns} data={data} onrowaction={handleRowAction}></lightning-datatable>
+    <!-- <lightning-button label="Preview" onclick={handleFill}></lightning-button>
     <lightning-button class="slds-var-p-left_xx-small" variant="brand" label="Save as Template"
-        onclick={handleSaveTemplate}></lightning-button>
+        onclick={handleSaveTemplate}></lightning-button> -->
 </template>

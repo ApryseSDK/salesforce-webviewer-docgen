@@ -192,14 +192,21 @@ public with sharing class PDFTron_ContentVersionController {
 
         // Prepare results
         List<LookupSearchResult> results = new List<LookupSearchResult>();
-        
+        String icon = 'doctype:unknown';
+
         for (PDFTron_Template_Mapping__mdt cv : [
-            SELECT id, sObject__c, Mapping__c, Template_Id__c, Template_Name__c
+            SELECT id, sObject__c, Mapping__c, Template_Id__c, DeveloperName, Template_Name__c
             FROM PDFTron_Template_Mapping__mdt
         ]) {
+
+            String subtitle = cv.sObject__c + ' - ' + cv.Template_Name__c;
+
+            if (String.isNotBlank(cv.sObject__c)){
+                icon = 'standard:' + cv.sObject__c.toLowerCase();
+            }
+            
             System.debug(cv);
-            String subtitle = '' + cv.sObject__c;
-            results.add(new LookupSearchResult(cv.Template_Id__c, 'PDFTron_Template_Mapping__mdt', getFileLogo('gform'), cv.Template_Name__c, subtitle));
+            results.add(new LookupSearchResult(cv.Template_Id__c, 'PDFTron_Template_Mapping__mdt', icon, cv.DeveloperName, subtitle ));
         }
        
         //results.sort();
@@ -314,6 +321,40 @@ public with sharing class PDFTron_ContentVersionController {
         return values;
     }
 
+
+    @AuraEnabled
+    public static List<SObject> queryRecords(String query, String objectName, List<String> fields){
+        try {
+
+            query = query.toLowerCase();
+
+            List<SObject> results = Database.query(query);
+            Set<String> ids = new Set<String>();
+
+
+            for(SObject result : results){
+                ids.add(result.Id);
+            }
+
+            String records = 'SELECT ';
+            for(String field : fields) {
+                records += field + ', ';
+            }
+
+            records = records.substring(0, records.length() - 2);
+            records += ' ';
+            records += 'FROM ' + objectName + ' ';
+            records += 'WHERE Id IN :ids';
+
+
+            System.debug(records);
+
+            return Database.query(records);
+            
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
     /** 
      * 
      * Util methods
@@ -395,4 +436,6 @@ public with sharing class PDFTron_ContentVersionController {
     }
 
     public class PDFTronException extends Exception {}
+
+    
 }

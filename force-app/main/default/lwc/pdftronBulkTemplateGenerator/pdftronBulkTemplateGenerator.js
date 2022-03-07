@@ -1,21 +1,12 @@
 import { LightningElement, track, wire, api } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
-import { fireEvent } from 'c/pubsub';
-// import getAttachments from "@salesforce/apex/PDFTron_ContentVersionController.getAttachments";
-// import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-// import apexSearch from '@salesforce/apex/PDFTron_ContentVersionController.search';
-import getSObjects from '@salesforce/apex/PDFTron_ContentVersionController.getSObjects';
-import getObjectFields from '@salesforce/apex/PDFTron_ContentVersionController.getObjectFields';
-import searchSOSL from '@salesforce/apex/PDFTron_ContentVersionController.searchSOSL'
+import { fireEvent, registerListener, unregisterAllListeners } from 'c/pubsub';
+import queryRecords from '@salesforce/apex/PDFTron_ContentVersionController.queryRecords';
 import templateSearch from '@salesforce/apex/PDFTron_ContentVersionController.getTemplateMappingResults';
 import getFileDataFromId from '@salesforce/apex/PDFTron_ContentVersionController.getFileDataFromId';
 
-const FIELDS = [
-    'PDFTron_Template_Mapping__mdt.Mapping__c',
-    'PDFTron_Template_Mapping__mdt.sObject__c',
-    'PDFTron_Template_Mapping__mdt.Template_Id__c',
-    'PDFTron_Template_Mapping__mdt.Template_Name__c'
-];
+
+
 
 export default class PdftronBulkTemplateGenerator extends LightningElement {
     // just show docx files
@@ -29,10 +20,21 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
     @track results;
     @track templateAttachments = [];
     @track attachments = [];
-    @track sObjects = []
-    @track sObjectsFields = []
+    soqlText = '';
+    keys;
+
+    columns;
+    data; 
+    showTable = false;
+
+    actions = [
+        {label: 'Preview', name: 'preview'}
+    ]
+
+  
 
     connectedCallback () {
+        registerListener('doc_gen_options', this.handleOptions, this);
         this.initLookupDefaultResults();
     }
 
@@ -101,98 +103,81 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
                 this.showNotification('Error', def_message + error.body.message, 'error');
             });
     }
-
-    handleSearch (event) {
-        const lookupElement = event.target
-        searchSOSL(event.detail)
-          .then(results => {
-            console.log('searchResults', results)
-            lookupElement.setSearchResults(results)
-          })
-          .catch(error => {
-            // TODO: handle error
-            this.error = error
-            console.error(error)
-            let def_message =
-              'We have encountered an error while searching your file. '
     
-            this.showNotification(
-              'Error',
-              def_message + error.body.message,
-              'error'
-            )
-          })
-      }
-
-    // @wire(getSObjects)
-    // attachments ({ error, data }) {
-    //     if (data) {
-    //     data.forEach(object => {
-    //         let option = {
-    //         label: object,
-    //         value: object
-    //         }
-    //         this.sObjects = [...this.sObjects, option]
-    //     })
-    //     error = undefined
-    //     } else if (error) {
-    //     console.error(error)
-    //     this.error = error
-
-    //     this.showNotification('Error', error.body.message, 'error')
-    //     }
-    // }
-
-    handleSObjectChange (event) {
-        this.selectedObject = event.detail.value
-        console.log('this.selectedObject', this.selectedObject)
-    
-        getObjectFields({ objectName: this.selectedObject })
-            .then(data => {
-                this.sObjectFields = []
-                data.forEach(field => {
-                let option = {
-                    label: field,
-                    value: field
-                }
-                this.sObjectFields = [...this.sObjectFields, option]
-                })
-            })
-            .catch(error => {
-                alert(error.body)
-                console.error(error)
-            })
+    handleSOQLQuery (event) {
+        this.soqlText = event.target.value;
     }
 
-    handleSingleSelectionChange (event) {
-        if (event.detail.length < 1) {
-          this.recordSearched = false
-          this.recordId = ''
-          this.selectedObject = ''
-          return
+    handleClick () {
+
+        if (this.soqlText !== '' && this.keys !== ''){
+            queryRecords({query: this.soqlText, objectName: this.removeSObject(this.soqlText), fields: this.keys})
+                .then(result => {
+                    const labels = new Set();
+                    this.columns = [];
+
+                    result.forEach(item => {
+                        for(const [key] of Object.entries(item)){
+                            labels.add(key)
+                        }
+                    })
+                    
+                    console.log(result);
+
+                    labels.forEach(key => {
+                        this.columns.push({
+                            label: key,
+                            fieldName: key
+                        })
+                    })
+
+                    this.columns.push({
+                        type: 'action',
+                        typeAttributes: {rowActions: this.actions}
+                    })
+
+                    this.data = result;
+                    this.showTable = true;
+                })
+                .catch(error => {
+                    this.showTable = false;
+                    console.error(error);
+                })
         }
-    
-        const selection = this.template.querySelector('.lookupRecord').getSelection()
-    
-        this.recordSearched = true
-    
-        this.recordId = selection[0].id
-        this.selectedObject = selection[0].sObjectType
-    
-        getObjectFields({ objectName: this.selectedObject })
-            .then(data => {
-                this.sObjectFields = []
-                data.forEach(field => {
-                let option = {
-                    label: field,
-                    value: field
-                }
-                this.sObjectFields = [...this.sObjectFields, option]
-                })
-            })
-            .catch(error => {
-                console.error(error)
-            })
     }
 
+    removeSObject (item) {
+        let queryArray = item.toLowerCase().split(' ');
+        let index = queryArray.findIndex(num => num === 'from');
+        return queryArray[index + 1];
+    }
+        
+    // SELECT Name FROM Contact WHERE name like '%j%' LIMIT 5
+
+    handleOptions(keys){
+        this.keys = keys;
+    }
+
+    handleRowAction(event){
+        var row = JSON.parse(JSON.stringify(event.detail.row));
+        var hashmap = {};
+        var copyKeys = this.keys.map(element => {
+             return element.toLowerCase()
+            });
+
+        for (const [key, value] of Object.entries(row)){
+            if (copyKeys.includes(key.toLowerCase())) {
+                var index = copyKeys.indexOf(key.toLowerCase())
+                hashmap[this.keys[index]] = value;
+            } else if (key === "Id") {
+                hashmap['Id'] = value
+            }
+        }
+
+        console.log(hashmap);
+
+
+        fireEvent(this.pageRef, 'doc_gen_mapping', hashmap);
+        console.log(row);
+    }
 }

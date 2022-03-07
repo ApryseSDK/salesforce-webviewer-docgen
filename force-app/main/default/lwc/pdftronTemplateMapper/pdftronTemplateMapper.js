@@ -181,6 +181,8 @@ export default class PdftronTemplateMapper extends LightningElement {
 
         this.mapping = newHashmap
 
+        console.log(this.mapping);
+
         fireEvent(this.pageRef, 'doc_gen_mapping', this.mapping)
       })
       .catch(error => {
