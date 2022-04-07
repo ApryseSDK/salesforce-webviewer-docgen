@@ -188,25 +188,26 @@ public with sharing class PDFTron_ContentVersionController {
     }
 
     @AuraEnabled(Cacheable=true)
-    public static List<LookupSearchResult> getTemplateMappingResults() {
+    public static List<TemplateWrapper> getTemplateMappingResults() {
 
         // Prepare results
-        List<LookupSearchResult> results = new List<LookupSearchResult>();
+        List<TemplateWrapper> results = new List<TemplateWrapper>();
         String icon = 'doctype:unknown';
 
-        for (PDFTron_Template_Mapping__mdt cv : [
+        for (PDFTron_Template_Mapping__mdt template : [
             SELECT id, sObject__c, Mapping__c, Template_Id__c, DeveloperName, Template_Name__c
             FROM PDFTron_Template_Mapping__mdt
         ]) {
 
-            String subtitle = cv.sObject__c + ' - ' + cv.Template_Name__c;
+            String subtitle = template.sObject__c + ' - ' + template.Template_Name__c;
 
-            if (String.isNotBlank(cv.sObject__c)){
-                icon = 'standard:' + cv.sObject__c.toLowerCase();
+            if (String.isNotBlank(template.sObject__c)){
+                icon = 'standard:' + template.sObject__c.toLowerCase();
             }
             
-            System.debug(cv);
-            results.add(new LookupSearchResult(cv.Template_Id__c, 'PDFTron_Template_Mapping__mdt', icon, cv.DeveloperName, subtitle ));
+            TemplateWrapper item = new TemplateWrapper(new LookupSearchResult(template.id, 'PDFTron_Template_Mapping__mdt', icon, template.DeveloperName, subtitle ), template);
+            results.add(item);
+
         }
        
         //results.sort();
@@ -432,6 +433,23 @@ public with sharing class PDFTron_ContentVersionController {
             this.cv = contentVer;
             this.name = contentVer.Title + '.' + contentVer.FileExtension;
             this.body = EncodingUtil.base64Encode(contentVer.VersionData);
+        }
+    }
+
+    // for (PDFTron_Template_Mapping__mdt cv : [
+    //         SELECT id, sObject__c, Mapping__c, Template_Id__c, DeveloperName, Template_Name__c
+    //         FROM PDFTron_Template_Mapping__mdt
+    // ])
+
+    public class TemplateWrapper {
+        @AuraEnabled
+        public LookupSearchResult lookup {get; set;}
+        @AuraEnabled
+        public PDFTron_Template_Mapping__mdt template {get; set;}
+
+        public TemplateWrapper(LookupSearchResult lookup, PDFTron_Template_Mapping__mdt template){
+            this.lookup = lookup;
+            this.template = template;
         }
     }
 

@@ -6,6 +6,7 @@ import getFileDataFromId from '@salesforce/apex/PDFTron_ContentVersionController
 
 export default class PdftronWebviewerContainer extends LightningElement {
     @api recordId;
+    @api flexipageRegionWidth;
     @track renderVideo = false;
     channel;
     context = createMessageContext();
