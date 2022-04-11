@@ -324,33 +324,10 @@ public with sharing class PDFTron_ContentVersionController {
 
 
     @AuraEnabled
-    public static List<SObject> queryRecords(String query, String objectName, List<String> fields){
+    public static List<SObject> queryRecords(String query){
         try {
 
-            query = query.toLowerCase();
-
-            List<SObject> results = Database.query(query);
-            Set<String> ids = new Set<String>();
-
-
-            for(SObject result : results){
-                ids.add(result.Id);
-            }
-
-            String records = 'SELECT ';
-            for(String field : fields) {
-                records += field + ', ';
-            }
-
-            records = records.substring(0, records.length() - 2);
-            records += ' ';
-            records += 'FROM ' + objectName + ' ';
-            records += 'WHERE Id IN :ids';
-
-
-            System.debug(records);
-
-            return Database.query(records);
+            return Database.query(query);
             
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());

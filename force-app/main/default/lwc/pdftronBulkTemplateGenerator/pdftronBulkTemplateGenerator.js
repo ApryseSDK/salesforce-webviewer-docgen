@@ -19,33 +19,39 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
         {label: 'test', value: 'test'}
     ];  
 
-    alpha_value = ['a'];
-    alpha_fields = [
-        {label: 'A to Z', value: 'a'},
-        {label: 'Z to A', value: 'z'}
+    sortphrase;
+    sortfield_value;
+    sortalpha_value = 'ASC';
+    sortalpha_fields = [
+        {label: 'A to Z', value: 'ASC'},
+        {label: 'Z to A', value: 'DESC'}
+    ]
+    sortnull_value = 'NULLS FIRST';
+    sortnull_fields = [
+        {label: 'Nulls First', value: 'NULLS FIRST'},
+        {label: 'Nulls Last', value: 'NULLS LAST'}
     ]
 
-    null_value = ['first']
-    null_fields = [
-        {label: 'Nulls First', value: 'first'},
-        {label: 'Nulls Last', value: 'last'}
-    ]
+    limit_value = '';
 
-    compare_value = ['=']
-    compare_fields = [
+    filterphrase;
+    filterfield_value;
+    filtertext_value;
+    filtercompare_value = '=';
+    filtercompare_fields = [
         {label: '=', value: '='},
-        {label: '≠', value: '≠'},
+        {label: '≠', value: '!='},
         {label: '<', value: '<'},
-        {label: '≤', value: '≤'},
+        {label: '≤', value: '<='},
         {label: '>', value: '>'},
-        {label: '≥', value: '≥'},
+        {label: '≥', value: '>='},
         {label: 'starts with', value: 'starts'},
         {label: 'ends with', value: 'ends'},
         {label: 'contains', value: 'contains'},
-        {label: 'in', value: 'in'},
-        {label: 'not in', value: 'not in'},
-        {label: 'includes', value: 'includes'},
-        {label: 'excludes', value: 'excludes'}
+        {label: 'in', value: 'IN'},
+        {label: 'not in', value: 'NOT IN'},
+        {label: 'includes', value: 'INCLUDES'},
+        {label: 'excludes', value: 'EXCLUDES'}
     ]
 
     documentsRetrieved = false;
@@ -58,12 +64,14 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
     soqlText = '';
     keys;
 
+    lookup_results;
+    template_results;
+
     sObject;
     sObject_options;
     sTemplate;
     sFields;
-    lookup_results;
-    template_results;
+    
     
 
     
@@ -169,9 +177,8 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
                     );
                 });
                 this.checkbox_value = this.checkbox_field[0].label;
-                const startSelect = this.template.querySelector('.objectCombobox');
                 this.sObject = this.sTemplate.PDFtron_WVDC__sObject__c;
-                
+                this.soqlText = 'SELECT ' + this.checkbox_value + ' FROM ' + this.sObject; 
             }
         })
         
@@ -195,32 +202,31 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
         
         
         getObjectFields({ objectName: this.sTemplate.PDFtron_WVDC__sObject__c })
-        .then(data => {
-            this.sFields = []
-            data.forEach(field => {
-                let option = {
-                    label: field,
-                    value: field
-                }
-                this.sFields = [...this.sFields, option]
+            .then(data => {
+                this.sFields = [
+                    {label: 'Deselect', value: ''}
+                ]
+                data.forEach(field => {
+                    let option = {
+                        label: field,
+                        value: field
+                    }
+                    this.sFields = [...this.sFields, option]
+                })
             })
-        })
-        .catch(error => {
-            alert(error.body)
-            console.error(error)
-        })
+            .catch(error => {
+                alert(error.body)
+                console.error(error)
+            })
+        
     }
     
-    handleSOQLQuery (event) {
-        this.soqlText = event.target.value;
-    }
+    
 
 
     handleClick () {
-
-
         if (this.soqlText !== '' && this.keys !== ''){
-            queryRecords({query: this.soqlText, objectName: this.removeSObject(this.soqlText), fields: this.keys})
+            queryRecords({query: this.soqlText})
                 .then(result => {
                     const labels = new Set();
                     this.columns = [];
@@ -231,8 +237,6 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
                         }
                     })
                     
-                    console.log(result);
-
                     labels.forEach(key => {
                         this.columns.push({
                             label: key,
@@ -253,12 +257,6 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
                     console.error(error);
                 })
         }
-    }
-
-    removeSObject (item) {
-        let queryArray = item.toLowerCase().split(' ');
-        let index = queryArray.findIndex(num => num === 'from');
-        return queryArray[index + 1];
     }
         
     // SELECT Name FROM Contact WHERE name like '%j%' LIMIT 5
@@ -283,11 +281,8 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
             }
         }
 
-        console.log(hashmap);
-
 
         fireEvent(this.pageRef, 'doc_gen_mapping', hashmap);
-        console.log(row);
     }
 
     showNotification(title, message, variant) {
@@ -299,7 +294,106 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
         this.dispatchEvent(evt);
     }
 
-    handleCheckboxChange() {
 
+
+    // Query Builiding Section
+    // Checkbox: handles the fields selected for the SOQL query
+    // Sort: Orders the SOQL Query results
+    // Limit: Limits the records requested
+    // Filter: Specify results with filters
+
+    handleCheckboxChange(event) {
+        this.checkbox_value = event.detail.value;
+        this.buildQuery();
+    }
+
+    
+    handleSortField(event){
+        this.sortfield_value = event.detail.value;
+        this.buildSortPhrase(); 
+    }
+    handleSortAlpha(event){
+        this.sortalpha_value = event.detail.value;
+        this.buildSortPhrase();
+    }
+    handleSortNull(event){
+        this.sortnull_value = event.detail.value;
+        this.buildSortPhrase();
+    }
+    buildSortPhrase(){
+        if (this.sortfield_value){
+            this.sortphrase = this.sortfield_value + ' ' + this.sortalpha_value + ' ' + this.sortnull_value;
+        } else {
+            this.sortphrase = '';
+        }
+        this.buildQuery();
+    }
+
+    handleLimitChange(event){
+        this.limit_value = event.detail.value;
+        this.buildQuery();
+    }
+
+
+    handleFilterField(event){ 
+        this.filterfield_value = event.detail.value; 
+        this.buildFilterPhrase();
+    }
+
+    handleFilterCompare(event){
+        this.filtercompare_value = event.detail.value;
+        this.buildFilterPhrase();
+    }
+
+    handleFilterText(event){
+        this.filtertext_value = event.detail.value;
+        this.buildFilterPhrase();
+    }  
+
+    
+    buildFilterPhrase(){
+        if (this.filterfield_value && this.filtertext_value){
+            this.filterphrase = this.filterfield_value + ' ';
+            switch(this.filtercompare_value){
+                case '=':
+                case '!=': 
+                case '<':
+                case '<=':
+                case '>':
+                case '>=':
+                    this.filterphrase += this.filtercompare_value + ' \'' + this.filtertext_value + '\'';
+                    break;
+                case 'starts':
+                    this.filterphrase += 'LIKE \'\%' + this.filtertext_value + '\'';
+                    break;
+                case 'ends':
+                    this.filterphrase += 'LIKE \'' + this.filtertext_value + '\%\'';
+                    break;
+                case 'contains':
+                    this.filterphrase += 'LIKE \'\%' + this.filtertext_value + '\%\'';
+                    break;
+                case 'IN':
+                case 'NOT IN':
+                case 'INCLUDES':
+                case 'EXCLUDES':
+                    this.filterphrase += this.filtercompare_value + ' \(' + this.filtertext_value + '\)';
+                    break;
+            }
+        } else {
+            this.filterphrase = '';
+        }
+        this.buildQuery();
+        
+    }
+
+
+    buildQuery(){
+        let array_checkbox = [this.checkbox_value];
+        let limit_results = (this.limit_value) ? ' LIMIT ' + this.limit_value : '';
+        let sort_results = (this.sortphrase) ? ' ORDER BY ' + this.sortphrase : '';
+        let filter_results = (this.filterphrase) ? ' WHERE ' + this.filterphrase : '';
+        let fields = array_checkbox.join(', ');
+
+        this.soqlText = 'SELECT ' + fields + ' FROM ' + this.sObject + filter_results + sort_results + limit_results;
     }
 }
