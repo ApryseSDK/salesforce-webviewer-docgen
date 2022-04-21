@@ -15,12 +15,12 @@
             <lightning-combobox name="Object" label="Object" value={sObject} options={sObject_options} class='objectCombobox' read-only></lightning-combobox>
             <div class="slds-grid">
                 <div class="slds-col slds-size_1-of-8 slds-grow-none">
-                    <lightning-checkbox-group 
-                                    class="slds-grid slds-grid_vertical-stretch"
-                                    label="Fields"
-                                    options={checkbox_field}
-                                    value={checkbox_value}
-                                    onchange={handleCheckboxChange}></lightning-checkbox-group>
+                    <lightning-checkbox-group   name="Checkbox Group"
+                                                class="slds-grid slds-grid_vertical-stretch"
+                                                label="Fields"
+                                                options={checkbox_option}
+                                                value={checkbox_value}
+                                                onchange={handleCheckboxChange}></lightning-checkbox-group>
                 </div>
                 <div class="slds-col">
                     <div class="slds-grid">
@@ -41,7 +41,8 @@
         </div>
         <lightning-textarea label="SOQL Query" value={soqlText} disabled></lightning-textarea> 
         <lightning-button onclick={handleClick} label="Query"></lightning-button>
-        <lightning-datatable if:true={showTable} key-field="Id" columns={columns} data={data} onrowaction={handleRowAction}></lightning-datatable>
+        <lightning-datatable if:true={showTable} key-field="Id" columns={columns} data={data} onrowaction={handleRowAction} onrowselection={handleSelectedRow}></lightning-datatable>
+        <lightning-button onclick={handleGenerate} label="Generate"></lightning-button>
     </template>
     
     <!-- <lightning-button label="Preview" onclick={handleFill}></lightning-button>

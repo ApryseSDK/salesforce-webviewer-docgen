@@ -5,13 +5,4 @@
     <targets>
         <target>lightning__RecordPage</target>
     </targets>
-    <targetConfigs>
-      <targetConfig targets="lightning__RecordPage">
-        <property
-            name="recordId"
-            type="String"
-            label="Record Id"
-            description="Automatically bind the page's record id to the component variable" />
-    </targetConfig>
-  </targetConfigs>
 </LightningComponentBundle>

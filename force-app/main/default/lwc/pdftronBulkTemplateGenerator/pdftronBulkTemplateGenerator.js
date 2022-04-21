@@ -15,9 +15,10 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
     @api recordId;
 
     checkbox_value = 'test';
-    checkbox_field = [
-        {label: 'test', value: 'test'}
-    ];  
+    checkbox_field = [];
+    get checkbox_option() {
+        return this.checkbox_field;  
+    }
 
     sortphrase;
     sortfield_value;
@@ -78,6 +79,7 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
     columns;
     data; 
     showTable = false;
+    selectedRows;
 
     actions = [
         {label: 'Preview', name: 'preview'}
@@ -164,27 +166,28 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
         this.isLoading = true;
 
         this.template_results.forEach(item => {
-            this.checkbox_field = [];
             if (item.Id === event.target.getSelection()[0].id){
+                this.checkbox_field = [];
                 this.sTemplate = item;
                 const checkbox_results = new Set();
-                Object.keys(JSON.parse(item.PDFtron_WVDC__Mapping__c)).forEach(e =>{
+                Object.keys(JSON.parse(item.Mapping__c)).forEach(e =>{
                     checkbox_results.add(e);
                 });
+                
                 checkbox_results.forEach(x => {
                     this.checkbox_field.push(
                         {label: x, value: x}
                     );
                 });
                 this.checkbox_value = this.checkbox_field[0].label;
-                this.sObject = this.sTemplate.PDFtron_WVDC__sObject__c;
+                this.sObject = this.sTemplate.sObject__c;
                 this.soqlText = 'SELECT ' + this.checkbox_value + ' FROM ' + this.sObject; 
             }
         })
         
 
 
-        getFileDataFromId({ Id: this.sTemplate.PDFtron_WVDC__Template_Id__c })
+        getFileDataFromId({ Id: this.sTemplate.Template_Id__c })
             .then(result => {
                 fireEvent(this.pageRef, 'blobSelected', result);
                 this.isLoading = false;
@@ -201,7 +204,7 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
             });
         
         
-        getObjectFields({ objectName: this.sTemplate.PDFtron_WVDC__sObject__c })
+        getObjectFields({ objectName: this.sTemplate.sObject__c })
             .then(data => {
                 this.sFields = [
                     {label: 'Deselect', value: ''}
@@ -225,7 +228,7 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
 
 
     handleClick () {
-        if (this.soqlText !== '' && this.keys !== ''){
+        if (this.soqlText !== ''){
             queryRecords({query: this.soqlText})
                 .then(result => {
                     const labels = new Set();
@@ -281,6 +284,7 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
             }
         }
 
+        console.log(hashmap);
 
         fireEvent(this.pageRef, 'doc_gen_mapping', hashmap);
     }
@@ -395,5 +399,20 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
         let fields = array_checkbox.join(', ');
 
         this.soqlText = 'SELECT ' + fields + ' FROM ' + this.sObject + filter_results + sort_results + limit_results;
+    }
+
+    handleGenerate(){
+        let template_mapping = JSON.parse(this.sTemplate.Mapping__c);
+        this.selectedRows.forEach(item => {
+            let mapping = {};
+            for(const field in item){
+                mapping[(field === 'Id') ? 'Id' : template_mapping[field]] = item[field];
+            }
+            console.log(mapping);
+        })
+    }
+
+    handleSelectedRow(event){
+        this.selectedRows = event.detail.selectedRows;
     }
 }
