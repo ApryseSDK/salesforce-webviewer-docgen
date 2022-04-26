@@ -167,25 +167,47 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
 
         this.template_results.forEach(item => {
             if (item.Id === event.target.getSelection()[0].id){
-                this.checkbox_field = [];
                 this.sTemplate = item;
-                const checkbox_results = new Set();
-                Object.keys(JSON.parse(item.Mapping__c)).forEach(e =>{
-                    checkbox_results.add(e);
-                });
-                
-                checkbox_results.forEach(x => {
-                    this.checkbox_field.push(
-                        {label: x, value: x}
-                    );
-                });
-                this.checkbox_value = this.checkbox_field[0].label;
+
+                this.checkbox_field = [];
+                let checkbox_results = new Set();
+
+                getObjectFields({ objectName: this.sTemplate.sObject__c })
+                    .then(data => {
+
+                        this.sFields = [
+                            {label: 'Deselect', value: ''}
+                        ]
+                        data.forEach(field => {
+                            let option = {
+                                label: field,
+                                value: field
+                            }
+                            this.sFields = [...this.sFields, option]
+                        })
+
+                        Object.keys(JSON.parse(this.sTemplate.Mapping__c)).forEach(e =>{
+                            if(data.includes(e)){
+                                checkbox_results.add(e);
+                            }
+                        });
+                        
+                        checkbox_results.forEach(x => {
+                            this.checkbox_field.push(
+                                {label: x, value: x}
+                            );
+                        });
+                        this.checkbox_value = this.checkbox_field[0].label;
+                        this.soqlText = 'SELECT ' + this.checkbox_value + ' FROM ' + this.sObject; 
+                    })
+                    .catch(error => {
+                        alert(error.body)
+                        console.error(error)
+                    })
+
                 this.sObject = this.sTemplate.sObject__c;
-                this.soqlText = 'SELECT ' + this.checkbox_value + ' FROM ' + this.sObject; 
             }
         })
-        
-
 
         getFileDataFromId({ Id: this.sTemplate.Template_Id__c })
             .then(result => {
@@ -201,27 +223,7 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
                 let def_message = 'We have encountered an error while handling your file. '
 
                 this.showNotification('Error', def_message + error.body.message, 'error');
-            });
-        
-        
-        getObjectFields({ objectName: this.sTemplate.sObject__c })
-            .then(data => {
-                this.sFields = [
-                    {label: 'Deselect', value: ''}
-                ]
-                data.forEach(field => {
-                    let option = {
-                        label: field,
-                        value: field
-                    }
-                    this.sFields = [...this.sFields, option]
-                })
-            })
-            .catch(error => {
-                alert(error.body)
-                console.error(error)
-            })
-        
+            });  
     }
     
     
@@ -403,13 +405,16 @@ export default class PdftronBulkTemplateGenerator extends LightningElement {
 
     handleGenerate(){
         let template_mapping = JSON.parse(this.sTemplate.Mapping__c);
+        let results = [];
         this.selectedRows.forEach(item => {
             let mapping = {};
             for(const field in item){
                 mapping[(field === 'Id') ? 'Id' : template_mapping[field]] = item[field];
             }
-            console.log(mapping);
-        })
+            results.push(mapping);
+        });
+
+        fireEvent(this.pageRef, 'bulk_mapping', results);
     }
 
     handleSelectedRow(event){

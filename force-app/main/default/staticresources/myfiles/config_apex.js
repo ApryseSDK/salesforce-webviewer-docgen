@@ -11,56 +11,98 @@ resourceURL = resourceURL + custom.namespacePrefix;
  * uploaded files stay under the 5mb limit
  */
 // office workers
-window.CoreControls.setOfficeWorkerPath(resourceURL + 'office')
-window.CoreControls.setOfficeAsmPath(resourceURL + 'office_asm');
-window.CoreControls.setOfficeResourcePath(resourceURL + 'office_resource');
+window.Core.setOfficeWorkerPath(resourceURL + 'office_8_4')
+window.Core.setOfficeAsmPath(resourceURL + 'office_asm_8_4');
+window.Core.setOfficeResourcePath(resourceURL + 'office_resource_8_4');
 
 // pdf workers
-window.CoreControls.setPDFResourcePath(resourceURL + 'resource')
+window.Core.setPDFResourcePath(resourceURL + 'resource_8_4')
 if (custom.fullAPI) {
-  window.CoreControls.setPDFWorkerPath(resourceURL + 'pdf_full')
-  window.CoreControls.setPDFAsmPath(resourceURL + 'asm_full');
+  window.Core.setPDFWorkerPath(resourceURL + 'pdf_full_8_4')
+  window.Core.setPDFAsmPath(resourceURL + 'asm_full_8_4');
 } else {
-  window.CoreControls.setPDFWorkerPath(resourceURL + 'pdf_lean')
-  window.CoreControls.setPDFAsmPath(resourceURL + 'asm_lean');
+  window.Core.setPDFWorkerPath(resourceURL + 'pdf_lean_8_4')
+  window.Core.setPDFAsmPath(resourceURL + 'asm_lean_8_4');
 }
 
 // external 3rd party libraries
-window.CoreControls.setExternalPath(resourceURL + 'external')
+window.Core.setExternalPath(resourceURL + 'external_8_4')
+
+// external 3rd party libraries
 window.CoreControls.setCustomFontURL('https://pdftron.s3.amazonaws.com/custom/ID-zJWLuhTffd3c/vlocity/webfontsv20/');
+
+var global_document;
 
 async function fillDocument(event) {
   const autofillMap = event.data.mapping;
 
   console.log('autofillMap', autofillMap);
 
-  //{"image_url":"/resource/pdftron_logo", "width":64, "height":64}
-/*
-  for (const entry in autofillMap) {
-    console.log("autofillMap[entry]", autofillMap[entry]);
-    
-    if (autofillMap[entry].includes('image_url')) {
-      const parentUrl = window.location.origin;
-      alert(parentUrl)
-      const json = JSON.parse(autofillMap[entry]);
-      const path = json['image_url'];
-      console.log(parentUrl + json['image_url']);
-      if (path.substr(0, 4) != 'http') {
-        console.log(parentUrl + path);
-        console.log(autofillMap[entry]);
-        json['image_url'] = parentUrl + path;
-        console.log(JSON.stringify(json));
-        autofillMap[entry] = json['image_url'];
-      }
-    }
-  }*/
-
   await documentViewer.getDocument().applyTemplateValues(autofillMap);
 
 }
 
-async function saveDocument() {
-  const doc = docViewer.getDocument();
+
+
+function generateBulkDocument(event){
+  const autofillMap = event.data.results;
+
+  console.log(autofillMap);
+  autofillMap.forEach( async (e) => {
+
+    const doc = documentViewer.getDocument();
+    await doc.documentCompletePromise();
+    documentViewer.updateView();
+    await doc.applyTemplateValues(e);
+    saveDocument(e.Id);
+
+  })
+
+  // var applyPromise = MakeQuerablePromise(documentViewer.getDocument().applyTemplateValues(e))
+
+  //   applyPromise.then(async function(){
+  //     if(applyPromise.isFulfilled()) {
+  //       await instance.downloadPdf();
+  //       // await saveDocument(e.Id);
+  //       console.log('Promise fulfilled');
+  //     }
+  //   })
+}
+
+
+// function MakeQuerablePromise(promise) {
+//   // Don't modify any promise that has been already modified.
+//   if (promise.isFulfilled) return promise;
+
+//   // Set initial state
+//   var isPending = true;
+//   var isRejected = false;
+//   var isFulfilled = false;
+
+//   // Observe the promise, saving the fulfillment in a closure scope.
+//   var result = promise.then(
+//       function(v) {
+//           isFulfilled = true;
+//           isPending = false;
+//           return v; 
+//       }, 
+//       function(e) {
+//           isRejected = true;
+//           isPending = false;
+//           throw e; 
+//       }
+//   );
+
+//   result.isFulfilled = function() { return isFulfilled; };
+//   result.isPending = function() { return isPending; };
+//   result.isRejected = function() { return isRejected; };
+//   return result;
+// }
+
+
+
+async function saveDocument(recordId) {
+  const doc = documentViewer.getDocument();
   if (!doc) {
     return;
   }
@@ -68,10 +110,11 @@ async function saveDocument() {
 
   const fileType = doc.getType();
   const filename = doc.getFilename();
-  const xfdfString = await docViewer.getAnnotationManager().exportAnnotations();
+  const xfdfString = await documentViewer.getAnnotationManager().exportAnnotations();
   const data = await doc.getFileData({
     // Saves the document with annotations in it
-    xfdfString
+    xfdfString,
+    downloadType: 'pdf'
   });
 
   let binary = '';
@@ -86,11 +129,14 @@ async function saveDocument() {
     title: filename.replace(/\.[^/.]+$/, ""),
     filename,
     base64Data,
-    contentDocumentId: doc.__contentDocumentId
+    contentDocumentId: doc.__contentDocumentId,
+    recordId
   }
   // Post message to LWC
   parent.postMessage({ type: 'SAVE_DOCUMENT', payload }, '*');
 }
+
+
 
 window.addEventListener('viewerLoaded', async function () {
   /**
@@ -112,7 +158,8 @@ window.addEventListener('viewerLoaded', async function () {
     documentViewer.updateView();
 
     const doc = documentViewer.getDocument();
-    const keys = doc.getTemplateKeys();
+    global_document = doc;
+    const keys = await doc.getTemplateKeys();
 
     console.log("keys", keys);
 
@@ -168,6 +215,9 @@ function receiveMessage(event) {
         break;
       case 'FILL_TEMPLATE':
         fillDocument(event);
+        break;
+      case 'BULK_TEMPLATE':
+        generateBulkDocument(event);
         break;
       case 'CLOSE_DOCUMENT':
         instance.closeDocument()
