@@ -40,23 +40,89 @@ async function fillDocument(event) {
 
   await documentViewer.getDocument().applyTemplateValues(autofillMap);
 
+
 }
 
 
+function _arrayBufferToBase64( buffer ) {
+  var binary = '';
+  var bytes = new Uint8Array( buffer );
+  var len = bytes.byteLength;
+  for (var i = 0; i < len; i++) {
+      binary += String.fromCharCode( bytes[ i ] );
+  }
+  return window.btoa( binary );
+}
 
-function generateBulkDocument(event){
+async function generateBulkDocument(event){
   const autofillMap = event.data.results;
 
-  console.log(autofillMap);
-  autofillMap.forEach( async (e) => {
+  // console.log('autofillMap', autofillMap);
 
-    const doc = documentViewer.getDocument();
-    await doc.documentCompletePromise();
-    documentViewer.updateView();
-    await doc.applyTemplateValues(e);
-    saveDocument(e.Id);
+  // autofillMap.forEach( async (e) => {
+  //   await documentViewer.getDocument().applyTemplateValues(e);
+    // setTimeout(() => {
+    //   saveDocument(e.Id);
+    //   console.log("Delayed for one second");
+    // }, "10000");
+  // })
+  
+
+  console.log(autofillMap);
+  const { blob, extension, filename, documentId } = global_document;
+  const buffer = await blob.arrayBuffer();
+
+  autofillMap.forEach( async (e, index) => {
+    console.log(e, index);
+
+    Core.officeToPDFBuffer(buffer, {
+      extension: extension,
+      officeOptions: {
+        templateValues: e 
+      }
+    }).then((file) => {
+      console.log(file);
+    }).catch( (error) => {
+      console.log(error);
+    });
+
+    // console.log('starting timeout');
+
+    // setTimeout(() => {
+    //   downloadFile(file, filename + '.pdf');
+    //   console.log("Saving index num " + index);
+    // }, "5000");
+
+
+    // let blobby = new Blob([file], {
+    //   type: extension
+    // })
+    // instance.loadDocument(blobby, { extension: 'pdf', filename, documentId });
+    // downloadFile(file, filename, extension)
+    // saveDocument(e.Id);
 
   })
+}
+
+  const downloadFile = (buffer, fileName) => {
+    const blob = new Blob([buffer]);
+    const link = document.createElement('a');
+  
+    const file = fileName;
+    // create a blobURI pointing to our Blob
+    link.href = URL.createObjectURL(blob);
+    link.download = file
+    // some browser needs the anchor to be in the doc
+    document.body.append(link);
+    link.click();
+    link.remove();
+  
+  
+    parent.postMessage({ type: 'DOWNLOAD_DOCUMENT', file }, '*')
+    // in case the Blob uses a lot of memory
+    setTimeout(() => URL.revokeObjectURL(link.href), 7000);
+    
+  };
 
   // var applyPromise = MakeQuerablePromise(documentViewer.getDocument().applyTemplateValues(e))
 
@@ -67,7 +133,6 @@ function generateBulkDocument(event){
   //       console.log('Promise fulfilled');
   //     }
   //   })
-}
 
 
 // function MakeQuerablePromise(promise) {
@@ -110,7 +175,7 @@ async function saveDocument(recordId) {
 
   const fileType = doc.getType();
   const filename = doc.getFilename();
-  const xfdfString = await documentViewer.getAnnotationManager().exportAnnotations();
+  const xfdfString = await instance.Core.documentViewer.getAnnotationManager().exportAnnotations();
   const data = await doc.getFileData({
     // Saves the document with annotations in it
     xfdfString,
@@ -158,7 +223,6 @@ window.addEventListener('viewerLoaded', async function () {
     documentViewer.updateView();
 
     const doc = documentViewer.getDocument();
-    global_document = doc;
     const keys = await doc.getTemplateKeys();
 
     console.log("keys", keys);
@@ -186,12 +250,10 @@ window.addEventListener("message", receiveMessage, false);
 function receiveMessage(event) {
   if (event.isTrusted && typeof event.data === 'object') {
     switch (event.data.type) {
-      case 'OPEN_DOCUMENT':
-        instance.loadDocument(event.data.file)
-        break;
       case 'OPEN_DOCUMENT_BLOB':
         const { blob, extension, filename, documentId } = event.data.payload;
-        instance.loadDocument(blob, { extension, filename, documentId })
+        instance.loadDocument(blob, { extension, filename, documentId });
+        global_document = event.data.payload;
         break;
       case 'DOCUMENT_SAVED':
         instance.showErrorMessage('Document saved!')

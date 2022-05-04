@@ -155,7 +155,7 @@ export default class PdftronWvInstance extends LightningElement {
 
   handleBlobSelected(record) {
     let blobby = new Blob([_base64ToArrayBuffer(record.body)], {
-      type: mimeTypes[record.FileExtension]
+      type: mimeTypes[record.cv.FileExtension]
     });
 
     console.log("blobby", blobby);
@@ -163,7 +163,7 @@ export default class PdftronWvInstance extends LightningElement {
     const payload = {
       blob: blobby,
       extension: record.cv.FileExtension,
-      filename: record.cv.Title + "." + record.cv.FileExtension,
+      filename: record.cv.Title,
       documentId: record.cv.Id
     };
 
