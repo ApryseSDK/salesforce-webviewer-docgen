@@ -56,52 +56,25 @@ function _arrayBufferToBase64( buffer ) {
 
 async function generateBulkDocument(event){
   const autofillMap = event.data.results;
-
-  // console.log('autofillMap', autofillMap);
-
-  // autofillMap.forEach( async (e) => {
-  //   await documentViewer.getDocument().applyTemplateValues(e);
-    // setTimeout(() => {
-    //   saveDocument(e.Id);
-    //   console.log("Delayed for one second");
-    // }, "10000");
-  // })
   
 
   console.log(autofillMap);
   const { blob, extension, filename, documentId } = global_document;
   const buffer = await blob.arrayBuffer();
 
-  autofillMap.forEach( async (e, index) => {
-    console.log(e, index);
+  for(const e of autofillMap){
+    console.log(e);
 
-    Core.officeToPDFBuffer(buffer, {
+    let item = await Core.officeToPDFBuffer(buffer, {
       extension: extension,
       officeOptions: {
         templateValues: e 
-      }
-    }).then((file) => {
-      console.log(file);
-    }).catch( (error) => {
-      console.log(error);
-    });
+      }});
 
-    // console.log('starting timeout');
+    downloadFile(item, filename, extension)
+    console.log(item);
+  }
 
-    // setTimeout(() => {
-    //   downloadFile(file, filename + '.pdf');
-    //   console.log("Saving index num " + index);
-    // }, "5000");
-
-
-    // let blobby = new Blob([file], {
-    //   type: extension
-    // })
-    // instance.loadDocument(blobby, { extension: 'pdf', filename, documentId });
-    // downloadFile(file, filename, extension)
-    // saveDocument(e.Id);
-
-  })
 }
 
   const downloadFile = (buffer, fileName) => {
