@@ -1,4 +1,6 @@
 public with sharing class PDFTron_ContentVersionController {
+    private final static Integer MAX_RESULTS = 7;
+
     @AuraEnabled (cacheable=true)
     public static List<ContentVersion> retrieveContentVersion() {
         return [SELECT Title, FileExtension
@@ -40,38 +42,130 @@ public with sharing class PDFTron_ContentVersionController {
     }
 
     @AuraEnabled
-    public static void saveDocument(String json, String recordId) {
+    public static String saveDocument(String json, String recordId, String cvId) {
         try {
-            System.debug(recordId);
-            PDFTron_ContentVersionPayload pl = PDFTron_ContentVersionPayload.parse(json);
-            ContentVersion cv = new ContentVersion();
-            
-            // 'S' = a Salesforce File
-            cv.ContentLocation = 'S';
-            if(pl.contentDocumentId != null) {
-                cv.ContentDocumentId = pl.contentDocumentId;
-                cv.ReasonForChange = 'Saved from WebViewer';//only for file updates
-            } else if (recordId != null) {
-                for(ContentDocumentLink cdl : 
-                    [   SELECT ContentDocumentId, ContentDocument.Title
-                        FROM ContentDocumentLink 
-                        WHERE LinkedEntityId = :recordId
-                        AND ContentDocument.Title = :pl.title ]) {
-                            if(cdl.ContentDocumentId != null) {
-                                cv.ContentDocumentId = cdl.ContentDocumentId;
-                            }
-                        }
+            //parse annotated document payload and create new ContentVersion
+            PDFTron_ContentVersionPayload pl = new PDFTron_ContentVersionPayload(json);
+            ContentVersion annotatedCv = new ContentVersion();
+
+            //retrieve original document before annotation
+            List<ContentVersion> cvList = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cvId];
+
+            if(cvList.size() == 1) {
+                //retrieve and delete original document
+                List<ContentDocument> originalDocument = [SELECT Id FROM ContentDocument WHERE Id = :cvList[0].ContentDocumentId];
+                
+            } else {
+                System.debug('Could not retrieve record for ' + cvId);
             }
-            cv.VersionData = EncodingUtil.base64Decode(pl.base64Data);
-            cv.Title = pl.title;
-            cv.PathOnClient = pl.filename;
-            
-            system.debug('### Upserting cv: ' + cv);
-            upsert cv; 
+            //build document blob
+            annotatedCv.VersionData = EncodingUtil.base64Decode(pl.base64Data);
+            annotatedCv.Title = pl.title;
+            annotatedCv.PathOnClient = pl.filename;
+
+            insert annotatedCv; 
+
+            if(annotatedCv.ContentDocumentId == null && String.isNotBlank(recordId)) {
+                //get the content version since ContentDocumentId is defined after insert
+                List<ContentVersion> contentVersions = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id =: annotatedCv.Id LIMIT 1];
+
+                //link record with document
+                ContentDocumentLink contentDocumentLink = new ContentDocumentLink(LinkedEntityId = recordId, ContentDocumentId = contentVersions[0].ContentDocumentId, ShareType = 'V');
+                insert contentDocumentLink;
+            }
+
+            return annotatedCv.Id;
         } catch (Exception e) {
             system.debug('### ERROR: ' + e.getMessage());
             throw new AuraHandledException(e.getMessage());
         }
+    }
+
+    @AuraEnabled
+    public static String createCMTRecord(String jsonString){
+        try {
+            Map<String, Object> parsedData = (Map<String, Object>)JSON.deserializeUntyped(jsonString);
+            system.debug('##mappy: ' + parsedData);
+            Map<String, Object> cmt_map = new Map<String, Object>();
+            cmt_map.put('Mapping__c', String.valueOf(parsedData.get('mapping')));
+            cmt_map.put('sObject__c', parsedData.get('sObjectName'));
+            cmt_map.put('Template_Name__c', parsedData.get('templateName'));
+            cmt_map.put('Template_Id__c', parsedData.get('templateId'));
+
+            String cmtName = String.valueOf(parsedData.get('cmtName'));
+
+            String recordName = 'PDFTron_Template_Mapping.' + cmtName;
+
+            system.debug('### rec name: '+recordName);
+
+            PDFTron_CMT_Helper.createUpdateMetadata(recordName, recordName, cmt_map);
+            return 'Done!';
+        } catch(Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled(Cacheable=true)
+    public static List<LookupSearchResult> searchSOSL(String searchTerm, List<String> selectedIds) {
+        // Prepare query paramters
+        searchTerm += '*';
+
+        // Execute search query
+        List<List<SObject>> searchResults = [
+            FIND :searchTerm
+            IN ALL FIELDS
+            RETURNING
+                Account(Id, Name, BillingCity WHERE id NOT IN :selectedIds),
+                Opportunity(Id, Name, StageName WHERE id NOT IN :selectedIds),
+                Contact(Id, FirstName, LastName WHERE id NOT IN :selectedIds)
+            LIMIT :MAX_RESULTS
+        ];
+
+        // Prepare results
+        List<LookupSearchResult> results = new List<LookupSearchResult>();
+
+        // Extract Accounts & convert them into LookupSearchResult
+        String accountIcon = 'standard:account';
+        Account[] accounts = (List<Account>) searchResults[0];
+        for (Account account : accounts) {
+            String subtitle = account.BillingCity == null ? 'Account' : 'Account • ' + account.BillingCity;
+            results.add(new LookupSearchResult(account.Id, 'Account', accountIcon, account.Name, subtitle));
+        }
+
+        // Extract Opportunities & convert them into LookupSearchResult
+        String opptyIcon = 'standard:opportunity';
+        Opportunity[] opptys = (List<Opportunity>) searchResults[1];
+        for (Opportunity oppty : opptys) {
+            results.add(
+                new LookupSearchResult(
+                    oppty.Id,
+                    'Opportunity',
+                    opptyIcon,
+                    oppty.Name,
+                    'Opportunity • ' + oppty.StageName
+                )
+            );
+        }
+
+        // Extract Opportunities & convert them into LookupSearchResult
+        String contactIcon = 'standard:contact';
+        Contact[] contacts = (List<Contact>) searchResults[2];
+        for (Contact con : contacts) {
+            results.add(
+                new LookupSearchResult(
+                    con.Id,
+                    'Contact',
+                    contactIcon,
+                    con.FirstName + ' ' + con.LastName,
+                    'Contact'
+                )
+            );
+        }
+
+        // Optionnaly sort all results on title
+        results.sort();
+
+        return results;
     }
 
     @AuraEnabled(Cacheable=true)
@@ -94,6 +188,33 @@ public with sharing class PDFTron_ContentVersionController {
             }
         }
 
+        //results.sort();
+        return results;
+    }
+
+    @AuraEnabled(Cacheable=true)
+    public static List<TemplateWrapper> getTemplateMappingResults() {
+
+        // Prepare results
+        List<TemplateWrapper> results = new List<TemplateWrapper>();
+        String icon = 'doctype:unknown';
+
+        for (PDFTron_Template_Mapping__mdt template : [
+            SELECT id, sObject__c, Mapping__c, Template_Id__c, DeveloperName, Template_Name__c
+            FROM PDFTron_Template_Mapping__mdt
+        ]) {
+
+            String subtitle = template.sObject__c + ' - ' + template.Template_Name__c;
+
+            if (String.isNotBlank(template.sObject__c)){
+                icon = 'standard:' + template.sObject__c.toLowerCase();
+            }
+            
+            TemplateWrapper item = new TemplateWrapper(new LookupSearchResult(template.id, 'PDFTron_Template_Mapping__mdt', icon, template.DeveloperName, subtitle ), template);
+            results.add(item);
+
+        }
+       
         //results.sort();
         return results;
     }
@@ -134,6 +255,63 @@ public with sharing class PDFTron_ContentVersionController {
         }
     }
 
+    @AuraEnabled(cacheable=true)
+    public static List<String> getSObjects(){
+        try {
+            List<string> sObjectList = new List<string>();
+
+            for(Schema.SObjectType objTyp : Schema.getGlobalDescribe().Values()) {
+            String name = objTyp.getDescribe().getName();
+            // Exclude all the unwanted Sobjects e.g. History, Share etc..
+                if((!name.containsignorecase('history') && !name.containsignorecase('tag')&&
+                    !name.containsignorecase('share') && !name.containsignorecase('feed')) || 
+                    name.toLowerCase().right(3) ==  '__c') {      
+                        sObjectList.add(name);
+                }
+            }
+
+            sObjectList.sort();
+            return sObjectList;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled(Cacheable=true)
+    public static List<String> getObjectFields(String objectName){
+        try {
+            SObjectType objectType = Schema.getGlobalDescribe().get(objectName);
+            List<String> result = new List<String>();
+            for(Schema.SObjectField field : objectType.getDescribe().fields.getMap().values()) {
+                result.add(field + '');
+            } 
+            result.sort();
+            return result;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled(Cacheable=true) 
+    public static List<sobject> queryValuesFromRecord(String recordId, String objectName, List<String> fields) {
+        Map<String, String> fieldMap = new Map<String, String> ();
+        String recId = recordId;
+        String query = 'SELECT ';
+        for(String field : fields) {
+            query += field + ', ';
+        }
+
+        query = query.substring(0, query.length() - 2);
+        query += ' ';
+        query += 'FROM ' + objectName + ' ';
+        query += 'WHERE Id = :recId';
+
+        List<sobject> sobjlist = Database.query(query);
+
+        System.debug(sobjlist);
+        return sobjlist;
+    }
+
     @AuraEnabled
     public static List<String> getPickList(String objectName, String fieldName) {
         List<String> values = new List<String>();
@@ -149,13 +327,24 @@ public with sharing class PDFTron_ContentVersionController {
         return values;
     }
 
+
+    @AuraEnabled
+    public static List<SObject> queryRecords(String query){
+        try {
+
+            return Database.query(query);
+            
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
     /** 
      * 
      * Util methods
      *  
      **/
 
-     public static String getFileLogo(String extension) {
+    public static String getFileLogo(String extension) {
         String logo = 'doctype:unknown';
 
         if(extension == 'pdf') {
@@ -168,7 +357,7 @@ public with sharing class PDFTron_ContentVersionController {
             logo = 'doctype:image';
         }             
         return logo;
-     }
+    }
 
     //only process blobs from below file formats
     public static Boolean checkFileExtension(String extension) {
@@ -229,5 +418,39 @@ public with sharing class PDFTron_ContentVersionController {
         }
     }
 
+    // for (PDFTron_Template_Mapping__mdt cv : [
+    //         SELECT id, sObject__c, Mapping__c, Template_Id__c, DeveloperName, Template_Name__c
+    //         FROM PDFTron_Template_Mapping__mdt
+    // ])
+
+    public class TemplateWrapper {
+        @AuraEnabled
+        public LookupSearchResult lookup {get; set;}
+        @AuraEnabled
+        public PDFTron_Template_Mapping__mdt template {get; set;}
+
+        public TemplateWrapper(LookupSearchResult lookup, PDFTron_Template_Mapping__mdt template){
+            this.lookup = lookup;
+            this.template = template;
+        }
+    }
+
+    public class PDFTron_ContentVersionPayload {
+        public String title {get; set;}
+        public String filename {get; set;}
+        public String base64Data {get; set;}
+        public String contentDocumentId {get; set;}
+
+        public PDFTron_ContentVersionPayload(String json) {
+            PDFTron_ContentVersionPayload pl = (PDFTron_ContentVersionPayload) System.JSON.deserialize(json, PDFTron_ContentVersionPayload.class);
+            this.title = pl.title;
+            this.filename = pl.filename;
+            this.base64Data = pl.base64Data;
+            this.contentDocumentId = pl.contentDocumentId;
+        }
+    }
+
     public class PDFTronException extends Exception {}
+
+    
 }

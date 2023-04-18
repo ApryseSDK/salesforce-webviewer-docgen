@@ -1,0 +1,51 @@
+<template>
+    <!-- custommetadeta template search -->
+    <c-lookup 
+        class="lookupTemplate"
+        label="Select Mapping"
+        onsearch={handleTemplateSearch} 
+        onselectionchange={handleSingleSelectionChange}
+        placeholder="Search Your Templates By Name">
+    </c-lookup>
+    <template if:true={isLoading}>
+        <p class="slds-var-p-around_small slds-align_absolute-center">You must select a template.</p>
+    </template>
+    <template if:false={isLoading}>
+        <div>
+            <lightning-combobox name="Object" label="Object" value={sObject} options={sObject_options} class='objectCombobox' read-only></lightning-combobox>
+            <div class="slds-grid">
+                <div class="slds-col slds-size_1-of-8 slds-grow-none">
+                    <lightning-checkbox-group   name="Checkbox Group"
+                                                class="slds-grid slds-grid_vertical-stretch"
+                                                label="Fields"
+                                                options={checkbox_option}
+                                                value={checkbox_value}
+                                                onchange={handleCheckboxChange}></lightning-checkbox-group>
+                </div>
+                <div class="slds-col">
+                    <div class="slds-grid">
+                        <lightning-combobox class="slds-col slds-size_2-of-6 slds-p-left_x-small" name='sortFields' label="Sort results by:" options={sFields} value={sortfield_value} onchange={handleSortField}></lightning-combobox>
+                        <lightning-combobox class="slds-col slds-size_1-of-6 slds-p-top_xx-small slds-p-left_x-small" name='sortCompare' options={sortalpha_fields} value={sortalpha_value} onchange={handleSortAlpha}></lightning-combobox>
+                        <lightning-combobox class="slds-col slds-size_1-of-6 slds-p-top_xx-small slds-p-left_x-small" name='nullFields' options={sortnull_fields} value={sortnull_value} onchange={handleSortNull}></lightning-combobox>
+                        <lightning-textarea class="slds-col slds-size_1-of-6 slds-col_bump-left slds-p-left_x-small" name="maxRecords" label="Max Records:" value={limit_value} onchange={handleLimitChange}></lightning-textarea>
+                    </div>
+                    <div class="slds-grid">
+                        <lightning-combobox class="slds-col slds-size_2-of-6 slds-p-left_x-small" name='filterFields' label="Filter results by:" options={sFields} value={filterfield_value} onchange={handleFilterField}></lightning-combobox>
+                        <lightning-combobox class="slds-col slds-size_1-of-6 slds-p-top_xx-small slds-p-left_x-small" name="filterCompare" options={filtercompare_fields} value={filtercompare_value} onchange={handleFilterCompare}></lightning-combobox>
+                        <lightning-textarea class="slds-col slds-size_2-of-6 slds-p-top_xx-small slds-p-left_x-small" name="filterTextArea" value={filtertext_value} onchange={handleFilterText}></lightning-textarea>
+                        
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        <lightning-textarea label="SOQL Query" value={soqlText} disabled></lightning-textarea> 
+        <lightning-button onclick={handleClick} label="Query"></lightning-button>
+        <lightning-datatable if:true={showTable} key-field="Id" columns={columns} data={data} onrowaction={handleRowAction} onrowselection={handleSelectedRow}></lightning-datatable>
+        <lightning-button if:true={showTable} onclick={handleGenerate} label="Generate"></lightning-button>
+    </template>
+    
+    <!-- <lightning-button label="Preview" onclick={handleFill}></lightning-button>
+    <lightning-button class="slds-var-p-left_xx-small" variant="brand" label="Save as Template"
+        onclick={handleSaveTemplate}></lightning-button> -->
+</template>

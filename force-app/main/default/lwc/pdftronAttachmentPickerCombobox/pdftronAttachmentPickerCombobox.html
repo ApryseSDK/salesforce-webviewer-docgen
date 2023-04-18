@@ -7,15 +7,9 @@
                 </div>
             </template>
             <div id="attachmentCombobox" class="slds-col">
-                <lightning-combobox
-                    class="slds-p-bottom_medium .slds-size_1-of-2"
-                    name="progress"
-                    value={value}
-                    label="Choose an attachment"
-                    placeholder="Choose an attachment..."
-                    options={picklistOptions}
-                    variant="label-hidden"
-                    onchange={handleChange} ></lightning-combobox>
+                <c-filter-combobox onsearch={handleSearch} onselectionchange={handleSingleSelectionChange}
+                    placeholder="Search Your Files By Name">
+                </c-filter-combobox>
             </div>
         </div>
     </lightning-card>

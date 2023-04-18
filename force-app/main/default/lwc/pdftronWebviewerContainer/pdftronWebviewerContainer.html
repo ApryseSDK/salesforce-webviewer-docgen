@@ -1,17 +1,12 @@
 <template>
-    <lightning-card title="Salesforce PDF App" icon-name="doctype:pdf" class="slds-var-p-around_small">
-        <div>
+    <lightning-card title="Template Mapper" icon-name="doctype:word" class="slds-var-p-left_small slds-var-p-right_small">
+        <div class="slds-p-around_xx-small">
             <c-lookup onsearch={handleSearch} onselectionchange={handleSingleSelectionChange}
-            placeholder="Search Templates By Name"></c-lookup>
+                placeholder="Search Templates By Name"></c-lookup>
         </div>
-        <div class="slds-grid">
-            <div class="slds-col slds-size_1-of-8">
-                
-            </div>
-            <div class="slds-col slds-size_7-of-8">
-                <div id="comboboxContainer">
-                    <c-pdftron-wv-instance></c-pdftron-wv-instance>
-                </div>
+        <div class="slds-p-around_xx-small">
+            <div id="comboboxContainer">
+                <c-pdftron-wv-instance></c-pdftron-wv-instance>
             </div>
         </div>
     </lightning-card>

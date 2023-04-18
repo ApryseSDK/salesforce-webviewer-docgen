@@ -363,16 +363,18 @@ export default class Lookup extends NavigationMixin(LightningElement) {
         let css = 'slds-combobox__form-element slds-input-has-icon ';
         if (this.isMultiEntry) {
             css += 'slds-input-has-icon_right';
+        } else if (this.hasSelection()) {
+            css += 'slds-input-has-icon_left-right'
         } else {
-            css += this.hasSelection() ? 'slds-input-has-icon_left-right' : 'slds-input-has-icon_right';
+            css += 'slds-input-has-icon_right';
         }
         return css;
     }
 
     get getSearchIconClass() {
         let css = 'slds-input__icon slds-input__icon_right ';
-        if (!this.isMultiEntry) {
-            css += this.hasSelection() ? 'slds-hide' : '';
+        if (!this.isMultiEntry && this.hasSelection()) {
+            css += 'slds-hide';
         }
         return css;
     }

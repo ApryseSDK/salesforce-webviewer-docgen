@@ -15,6 +15,7 @@ export default {
   'css'    : 'text/css',
   'dll'    : 'application/octet-stream',
   'doc'    : 'application/msword',
+  'docx'   : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'dot'    : 'application/msword',
   'dvi'    : 'application/x-dvi',
   'eml'    : 'message/rfc822',

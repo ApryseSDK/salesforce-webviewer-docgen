@@ -1,7 +1,7 @@
 import { LightningElement, wire, track, api } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
 import { loadScript } from 'lightning/platformResourceLoader';
-import libUrl from '@salesforce/resourceUrl/lib';
+import libUrl from "@salesforce/resourceUrl/lib_8_4";
 import myfilesUrl from '@salesforce/resourceUrl/myfiles';
 import { publish, createMessageContext, releaseMessageContext, subscribe, unsubscribe } from 'lightning/messageService';
 import WebViewerMC from "@salesforce/messageChannel/WebViewerMessageChannel__c";
@@ -38,9 +38,9 @@ export default class PdftronWvInstance extends LightningElement {
   pageRef;
 
   connectedCallback() {
-    //'/sfc/servlet.shepherd/version/download/0694x000000pEGyAAM'
-    ///servlet/servlet.FileDownload?file=documentId0694x000000pEGyAAM
     this.handleSubscribe();
+    
+    registerListener('handleLink', this.handleLink, this);
     registerListener('blobSelected', this.handleBlobSelected, this);
     registerListener('fileIdsSelected', this.handleFileIdsSelected, this);
     registerListener('search', this.search, this);
@@ -48,6 +48,8 @@ export default class PdftronWvInstance extends LightningElement {
     registerListener('replace', this.contentReplace, this);
     registerListener('redact', this.contentRedact, this);
     registerListener('doc_gen_mapping', this.handleTemplateMapping, this);
+    registerListener('bulk_mapping', this.handleBulkFill, this);
+    registerListener('closeDocument', this.closeDocument, this);
     window.addEventListener('message', this.handleReceiveMessage.bind(this), false);
   }
 
@@ -55,6 +57,16 @@ export default class PdftronWvInstance extends LightningElement {
     unregisterAllListeners(this);
     window.removeEventListener('message', this.handleReceiveMessage, true);
     this.handleUnsubscribe();
+  }
+
+  handleBulkFill(results){
+    console.log(results);
+    this.iframeWindow.postMessage({ type: 'BULK_TEMPLATE', results }, '*');
+  }
+
+  handleLink(event) {
+    let url = event.data.payload;
+    this.iframeWindow.postMessage({ type: 'LOAD_URL', url }, '*');
   }
 
   handleSubscribe() {
@@ -74,6 +86,7 @@ export default class PdftronWvInstance extends LightningElement {
   }
   
   handleTemplateMapping(mapping) {
+    console.log('mapping in instance: ', mapping);
     this.iframeWindow.postMessage({ type: 'FILL_TEMPLATE', mapping }, '*');
   }
 
@@ -141,11 +154,8 @@ export default class PdftronWvInstance extends LightningElement {
   }
 
   handleBlobSelected(record) {
-    console.log("handleBlob", record);
-    //record = JSON.parse(record);
-
     let blobby = new Blob([_base64ToArrayBuffer(record.body)], {
-      type: mimeTypes[record.FileExtension]
+      type: mimeTypes[record.cv.FileExtension]
     });
 
     console.log("blobby", blobby);
@@ -153,7 +163,7 @@ export default class PdftronWvInstance extends LightningElement {
     const payload = {
       blob: blobby,
       extension: record.cv.FileExtension,
-      filename: record.cv.Title + "." + record.cv.FileExtension,
+      filename: record.cv.Title,
       documentId: record.cv.Id
     };
 
@@ -225,9 +235,32 @@ export default class PdftronWvInstance extends LightningElement {
           console.log("firing doc_gen_options");
           fireEvent(this.pageRef, 'doc_gen_options', keys);
           break;
+        case 'SAVE_DOCUMENT':
+          const cvId = event.data.payload.contentDocumentId;
+          saveDocument({ json: JSON.stringify(event.data.payload), recordId: event.data.payload.recordId, cvId: cvId })
+          .then((response) => {
+            me.iframeWindow.postMessage({ type: 'DOCUMENT_SAVED', response }, '*');
+            
+            fireEvent(this.pageRef, 'refreshOnSave', response);
+
+            this.showNotification('Success', event.data.payload.filename + ' Saved', 'success');
+          })
+          .catch(error => {
+            me.iframeWindow.postMessage({ type: 'DOCUMENT_SAVED', error }, '*')
+            fireEvent(this.pageRef, 'refreshOnSave', error);
+            console.error(event.data.payload.contentDocumentId);
+            console.error(JSON.stringify(error));
+            this.showNotification('Error', error.body, 'error');
+          });
+          break;
         default:
           break;
       }
     }
+  }
+
+  @api
+  closeDocument() {
+    this.iframeWindow.postMessage({type: 'CLOSE_DOCUMENT' }, '*')
   }
 }
